@@ -1,27 +1,19 @@
 import os
-import shutil
 import subprocess
 import sys
 
 def main():
-    tailscale_bin = shutil.which("tailscale") or "/usr/bin/tailscale" or "/usr/sbin/tailscale"
-    sunshine_bin = shutil.which("sunshine") or "/usr/bin/sunshine"
-
     print("\n=======================================================")
-    print(" ACESSE O LINK ABAIXO PARA CONECTAR AO SEU TAILSCALE:")
+    print(" INICIANDO AMBIENTE COLAB CLOUD GAMING")
     print("=======================================================\n")
-    
-    # Autenticação Tailscale
-    subprocess.run(["sudo", tailscale_bin, "--socket=/var/run/tailscale/tailscaled.sock", "up", "--qr=false"])
 
-    print("\n=== INICIANDO SUNSHINE (SERVIDOR MOONLIGHT) ===")
-    os.environ["DISPLAY"] = ":0"
+    # Inicia a execução do script de pairing/streaming do repositório
+    script_path = "/tmp/colab-gaming/moon-pair.sh"
     
-    if os.path.exists(sunshine_bin):
-        # Executa com sudo e extrai o AppImage no ambiente do Colab
-        subprocess.run(["sudo", sunshine_bin, "--appimage-extract-and-run"])
+    if os.path.exists(script_path):
+        subprocess.run(["bash", script_path])
     else:
-        print(f"Erro: Sunshine nao encontrado em {sunshine_bin}")
+        print(f"Erro: Script nao encontrado em {script_path}")
 
 if __name__ == "__main__":
     main()
