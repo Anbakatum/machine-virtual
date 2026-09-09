@@ -6,31 +6,33 @@ import shutil
 def setup_tailscale():
     print("\n=== INICIANDO TAILSCALE ===")
     
-    # 1. Inicia o tailscaled em segundo plano (&) para não travar o terminal com logs
+    # Inicia o daemon se nao estiver rodando
     subprocess.Popen(
         ["sudo", "tailscaled", "--tun=userspace-networking", "--socks5-server=localhost:1055"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL
     )
-    time.sleep(3) # Aguarda o daemon subir
+    time.sleep(3)
 
     tailscale_bin = shutil.which("tailscale") or "/usr/bin/tailscale" or "/usr/sbin/tailscale"
 
-    print("\n=======================================================")
-    print(" ACESSE O LINK ABAIXO PARA CONECTAR AO SEU TAILSCALE:")
-    print("=======================================================\n")
-    
-    # 2. Executa o comando de login
+    # Conecta ao Tailscale
     subprocess.run(["sudo", tailscale_bin, "up", "--qr=false"])
 
+    print("\n=======================================================")
+    print(" SEU IP DO TAILSCALE:")
+    # Mostra o IP gerado para usar no Moonlight
+    subprocess.run(["sudo", tailscale_bin, "ip", "-4"])
+    print("=======================================================\n")
+
 def main():
-    # 1. Configura e conecta o Tailscale
+    # 1. Configura e exibe o IP do Tailscale
     setup_tailscale()
 
     # 2. Inicia o script do Sunshine / Moon-pair
     script_path = "/tmp/colab-gaming/moon-pair.sh"
 
-    print("\n=======================================================")
+    print("=======================================================")
     print(" INICIANDO SUNSHINE / MOONLIGHT PAIRING")
     print("=======================================================\n")
 
