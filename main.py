@@ -5,20 +5,21 @@ import sys
 
 def main():
     tailscale_bin = shutil.which("tailscale") or "/usr/bin/tailscale" or "/usr/sbin/tailscale"
-    sunshine_bin = shutil.which("sunshine") or "/usr/bin/sunshine" or "/usr/local/bin/sunshine"
+    sunshine_bin = shutil.which("sunshine") or "/usr/bin/sunshine"
 
     print("\n=======================================================")
     print(" ACESSE O LINK ABAIXO PARA CONECTAR AO SEU TAILSCALE:")
     print("=======================================================\n")
     
-    # Conecta apontando diretamente para o socket configurado
+    # Autenticação Tailscale
     subprocess.run(["sudo", tailscale_bin, "--socket=/var/run/tailscale/tailscaled.sock", "up", "--qr=false"])
 
     print("\n=== INICIANDO SUNSHINE (SERVIDOR MOONLIGHT) ===")
     os.environ["DISPLAY"] = ":0"
     
     if os.path.exists(sunshine_bin):
-        subprocess.run([sunshine_bin])
+        # Flag necessária para AppImages rodarem dentro do docker/Colab
+        subprocess.run([sunshine_bin, "--appimage-extract-and-run"])
     else:
         print(f"Erro: Sunshine nao encontrado em {sunshine_bin}")
 
