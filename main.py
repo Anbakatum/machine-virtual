@@ -18,8 +18,8 @@ def main():
     os.environ["DISPLAY"] = ":0"
     
     if os.path.exists(sunshine_bin):
-        # Flag necessária para AppImages rodarem dentro do docker/Colab
-        subprocess.run([sunshine_bin, "--appimage-extract-and-run"])
+        # Executa com sudo e extrai o AppImage no ambiente do Colab
+        subprocess.run(["sudo", sunshine_bin, "--appimage-extract-and-run"])
     else:
         print(f"Erro: Sunshine nao encontrado em {sunshine_bin}")
 
