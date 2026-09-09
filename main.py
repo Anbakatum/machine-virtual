@@ -2,51 +2,26 @@ import os
 import time
 import subprocess
 import shutil
-import re
 
-def install_and_start_cloudflared():
-    print("\n=== INSTALANDO CLOUDFLARE TUNNEL ===")
-    cloudflared_bin = shutil.which("cloudflared") or "/usr/local/bin/cloudflared"
-    
-    if not os.path.exists(cloudflared_bin):
-        subprocess.run([
-            "wget", "-q", "-O", "/usr/local/bin/cloudflared",
-            "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
-        ], check=True)
-        subprocess.run(["chmod", "+x", "/usr/local/bin/cloudflared"], check=True)
-        cloudflared_bin = "/usr/local/bin/cloudflared"
+def install_and_start_tailscale():
+    print("\n=== INSTALANDO TAILSCALE ===")
+    if not shutil.which("tailscale"):
+        subprocess.run("curl -fsSL https://tailscale.com/install.sh | sh", shell=True, check=True)
 
-    print("=== INICIANDO TÚNEL DA CLOUDFLARE ===")
-    
-    # Inicia o túnel direcionando a porta 47989 do Sunshine
-    log_file = open("/tmp/cloudflared.log", "w")
-    subprocess.Popen(
-        [cloudflared_bin, "tunnel", "--url", "tcp://localhost:47989"],
-        stdout=log_file,
-        stderr=log_file
-    )
-    
-    public_address = None
-    start_time = time.time()
-    
-    # Aguarda gerar o link no arquivo de log sem travar o Python
-    while time.time() - start_time < 15:
-        time.sleep(1)
-        if os.path.exists("/tmp/cloudflared.log"):
-            with open("/tmp/cloudflared.log", "r") as f:
-                content = f.read()
-                match = re.search(r'https://[a-zA-Z0-9.-]+\.trycloudflare\.com', content)
-                if match:
-                    # Formata o endereço removendo o https://
-                    public_address = match.group(0).replace("https://", "")
-                    break
+    print("\n=== INICIANDO SERVIÇO DO TAILSCALE ===")
+    subprocess.Popen(["sudo", "tailscaled"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(3)
 
-    if public_address:
-        print("\n=======================================================")
-        print(f" ENDEREÇO PARA COLOCAR NO MOONLIGHT: {public_address}")
-        print("=======================================================\n")
-    else:
-        print("\n[!] Verifique os logs de conexão do túnel em /tmp/cloudflared.log\n")
+    print("\n=== FAÇA LOGIN NO TAILSCALE ===")
+    print("Acesse o link abaixo no seu navegador para autorizar a máquina do Colab:\n")
+    
+    # Executa o login e exibe a URL no terminal
+    process = subprocess.Popen(["sudo", "tailscale", "up"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    
+    for line in iter(process.stdout.readline, ''):
+        print(line, end='')
+        if "https://tailscale.com/a/" in line or "Success" in line:
+            break
 
 def start_sunshine():
     print("=== INICIANDO SERVIDOR SUNSHINE ===")
@@ -58,13 +33,15 @@ def start_sunshine():
 
 def main():
     start_sunshine()
-    install_and_start_cloudflared()
+    install_and_start_tailscale()
+
+    print("\n=======================================================")
+    print(" PASSO 1: Abra o link do Tailscale exibido acima e faça login")
+    print(" PASSO 2: Baixe/abra o aplicativo Tailscale no seu PC/Celular")
+    print(" PASSO 3: Copie o IP 100.x.x.x gerado no app do Tailscale e adicione no Moonlight")
+    print("=======================================================\n")
 
     script_path = "/tmp/colab-gaming/moon-pair.sh"
-
-    print("=======================================================")
-    print(" READY! DIGITE O PIN DO MOONLIGHT ABAIXO")
-    print("=======================================================\n")
 
     if os.path.exists(script_path):
         subprocess.run(["bash", script_path])
