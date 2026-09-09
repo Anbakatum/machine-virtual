@@ -9,8 +9,11 @@ NGROK_AUTH_TOKEN = "3J3AWUbpO8jfj8vfW3KpQgbsVhd_44stQ17sQEKNhxicZmDER"
 def install_and_setup_ngrok():
     print("\n=== CONFIGURANDO NGROK ===")
     if not shutil.which("ngrok"):
-        subprocess.run(["wget", "https://bin.equinox.io/c/b4Pvu3rtCDY/ngrok-v3-stable-linux-amd64.tgz"], check=True)
-        subprocess.run(["tar", "-xvzf", "ngrok-v3-stable-linux-amd64.tgz", "-C", "/usr/local/bin"], check=True)
+        # Instala o ngrok via repositorio oficial de pacotes (APT)
+        subprocess.run(["curl", "-s", "https://ngrok-agent.s3.amazonaws.com/ngrok.asc"], stdout=open("/etc/apt/trusted.gpg.d/ngrok.asc", "wb"), check=True)
+        subprocess.run(["echo", "deb https://ngrok-agent.s3.amazonaws.com buster main"], stdout=open("/etc/apt/sources.list.d/ngrok.list", "w"), check=True)
+        subprocess.run(["sudo", "apt", "update"], check=True)
+        subprocess.run(["sudo", "apt", "install", "ngrok", "-y"], check=True)
     
     subprocess.run(["ngrok", "config", "add-authtoken", NGROK_AUTH_TOKEN], check=True)
 
