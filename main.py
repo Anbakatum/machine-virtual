@@ -1,28 +1,32 @@
 import os
+import time
 import subprocess
-import sys
+import shutil
 
-def mount_google_drive():
-    """Monta o Google Drive no caminho padrão /content/drive"""
-    print("\n=== MONTAGEM DO GOOGLE DRIVE ===")
-    try:
-        from google.colab import drive
-        drive.mount('/content/drive')
-        print("✔ Google Drive montado com sucesso em /content/drive!\n")
-    except ImportError:
-        print("⚠ Executando fora do ambiente Colab ou módulo google.colab indisponível.")
-    except Exception as e:
-        print(f"✖ Erro ao montar o Google Drive: {e}\n")
+def setup_tailscale():
+    print("\n=== INICIANDO TAILSCALE ===")
+    # Sobe o daemon do Tailscale se não estiver rodando
+    subprocess.run(["sudo", "tailscaled", "--tun=userspace-networking", "--socks5-server=localhost:1055"], check=False)
+    time.sleep(2)
+
+    tailscale_bin = shutil.which("tailscale") or "/usr/bin/tailscale" or "/usr/sbin/tailscale"
+
+    print("\n=======================================================")
+    print(" ACESSE O LINK ABAIXO PARA CONECTAR AO SEU TAILSCALE:")
+    print("=======================================================\n")
+    
+    # Exibe o link e QR para login no Tailscale
+    subprocess.run(["sudo", tailscale_bin, "--socket=/var/run/tailscale/tailscaled.sock", "up", "--qr=false"])
 
 def main():
-    # 1. Monta o Google Drive
-    mount_google_drive()
+    # 1. Configura e conecta o Tailscale
+    setup_tailscale()
 
-    # 2. Caminho do script clonado via Makefile
+    # 2. Inicia o script do Sunshine / Moon-pair
     script_path = "/tmp/colab-gaming/moon-pair.sh"
 
-    print("=======================================================")
-    print(" INICIANDO AMBIENTE COLAB CLOUD GAMING")
+    print("\n=======================================================")
+    print(" INICIANDO SUNSHINE / MOONLIGHT PAIRING")
     print("=======================================================\n")
 
     if os.path.exists(script_path):
