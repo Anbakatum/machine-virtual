@@ -2,7 +2,7 @@ import os
 import subprocess
 
 def setup_rdp():
-    print("=== INSTALANDO AMBIENTE GRÁFICO (XFCE4) E CHROME REMOTE DESKTOP ===")
+    print("=== INSTALANDO INTERFACE GRÁFICA (XFCE4) E CHROME REMOTE DESKTOP ===")
     
     commands = [
         "sudo apt-get update -y",
@@ -15,17 +15,17 @@ def setup_rdp():
         subprocess.run(cmd, shell=True, check=True)
 
 def start_crd():
-    print("\n=== EXECUTANDO COMANDO DE AUTORIZAÇÃO ===")
-    auth_code = input("Cole o comando do Chrome Remote Desktop aqui e aperte ENTER:\n")
+    print("\n=== PRONTO PARA AUTORIZAR ===")
+    auth_code = input("Cole o seu comando 'Debian Linux' copiado do Chrome Remote Desktop e aperte ENTER:\n")
     
     if auth_code.strip():
         subprocess.run(auth_code, shell=True)
         print("\n=======================================================")
-        print(" CONFIGURAÇÃO CONCLUÍDA!")
-        print(" Acesse: https://remotedesktop.google.com/access")
+        print(" CONFIGURAÇÃO CONCLUÍDA COM SUCESSO!")
+        print(" Acesse https://remotedesktop.google.com/access para conectar.")
         print("=======================================================\n")
     else:
-        print("[!] Comando inválido. Execute o script novamente.")
+        print("[!] Nenhum comando inserido.")
 
 def main():
     setup_rdp()
