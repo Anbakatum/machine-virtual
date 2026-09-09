@@ -11,8 +11,8 @@ def main():
     print(" ACESSE O LINK ABAIXO PARA CONECTAR AO SEU TAILSCALE:")
     print("=======================================================\n")
     
-    # Executa a autenticação interativa do Tailscale
-    subprocess.run(["sudo", tailscale_bin, "up", "--qr=false"])
+    # Conecta apontando diretamente para o socket configurado
+    subprocess.run(["sudo", tailscale_bin, "--socket=/var/run/tailscale/tailscaled.sock", "up", "--qr=false"])
 
     print("\n=== INICIANDO SUNSHINE (SERVIDOR MOONLIGHT) ===")
     os.environ["DISPLAY"] = ":0"
