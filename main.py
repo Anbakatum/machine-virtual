@@ -1,3 +1,22 @@
+import os
+import time
+import subprocess
+import shutil
+import urllib.request
+import json
+
+NGROK_AUTH_TOKEN = "3J3AWUbpO8jfj8vfW3KpQgbsVhd_44stQ17sQEKNhxicZmDER"
+
+def install_and_setup_ngrok():
+    print("\n=== CONFIGURANDO NGROK ===")
+    if not shutil.which("ngrok"):
+        subprocess.run(["curl", "-s", "https://ngrok-agent.s3.amazonaws.com/ngrok.asc"], stdout=open("/etc/apt/trusted.gpg.d/ngrok.asc", "wb"), check=True)
+        subprocess.run(["echo", "deb https://ngrok-agent.s3.amazonaws.com buster main"], stdout=open("/etc/apt/sources.list.d/ngrok.list", "w"), check=True)
+        subprocess.run(["sudo", "apt", "update"], check=True)
+        subprocess.run(["sudo", "apt", "install", "ngrok", "-y"], check=True)
+    
+    subprocess.run(["ngrok", "config", "add-authtoken", NGROK_AUTH_TOKEN], check=True)
+
 def start_sunshine_and_tunnel():
     print("=== INICIANDO SUNSHINE ===")
     sunshine_bin = shutil.which("sunshine") or "/usr/bin/sunshine" or "/usr/local/bin/sunshine"
@@ -9,12 +28,8 @@ def start_sunshine_and_tunnel():
     print("=== CRIANDO TUNEL PARA O MOONLIGHT ===")
     subprocess.Popen(["ngrok", "tcp", "47989"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     
-    # Aguarda o processo do ngrok subir a API local
     public_url = None
-    import urllib.request
-    import json
-
-    for attempt in range(10):
+    for _ in range(10):
         time.sleep(1)
         try:
             req = urllib.request.urlopen("http://localhost:4040/api/tunnels")
@@ -31,5 +46,24 @@ def start_sunshine_and_tunnel():
         print(f" ENDEREÇO PARA COLOCAR NO MOONLIGHT: {public_url}")
         print("=======================================================\n")
     else:
-        print("\n[ERRO] Não foi possível iniciar o túnel do ngrok.")
-        print("Certifique-se de que substituiu 'SEU_NGROK_TOKEN_AQUI' no main.py pelo seu token do dashboard do ngrok.\n")
+        print("\n[ERRO] Nao foi possivel obter o endereco do ngrok.\n")
+
+def main():
+    install_and_setup_ngrok()
+    start_sunshine_and_tunnel()
+
+    script_path = "/tmp/colab-gaming/moon-pair.sh"
+
+    print("=======================================================")
+    print(" DIGITE O PIN DO MOONLIGHT ABAIXO")
+    print("=======================================================\n")
+
+    if os.path.exists(script_path):
+        subprocess.run(["bash", script_path])
+    else:
+        pin = input("Enter Moonlight PIN: ")
+        sunshine_bin = shutil.which("sunshine") or "/usr/bin/sunshine"
+        subprocess.run(["sudo", sunshine_bin, "--pair", pin])
+
+if __name__ == "__main__":
+    main()
