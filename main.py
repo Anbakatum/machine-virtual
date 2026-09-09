@@ -1,54 +1,35 @@
 import os
-import time
 import subprocess
-import shutil
 
-def install_and_start_tailscale():
-    print("\n=== INSTALANDO TAILSCALE ===")
-    if not shutil.which("tailscale"):
-        subprocess.run("curl -fsSL https://tailscale.com/install.sh | sh", shell=True, check=True)
-
-    print("\n=== INICIANDO SERVIÇO DO TAILSCALE ===")
-    subprocess.Popen(["sudo", "tailscaled"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    time.sleep(3)
-
-    print("\n=== FAÇA LOGIN NO TAILSCALE ===")
-    print("Acesse o link abaixo no seu navegador para autorizar a máquina do Colab:\n")
+def setup_rdp():
+    print("=== INSTALANDO AMBIENTE GRÁFICO (XFCE4) E CHROME REMOTE DESKTOP ===")
     
-    # Executa o login e exibe a URL no terminal
-    process = subprocess.Popen(["sudo", "tailscale", "up"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    commands = [
+        "sudo apt-get update -y",
+        "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xfce4 desktop-base xfce4-terminal chrome-remote-desktop",
+        "sudo apt-get install -y xscreensaver-",
+        "sudo bash -c 'echo \"exec /etc/X11/Xsession /usr/bin/xfce4-session\" > /etc/chrome-remote-desktop-session'"
+    ]
     
-    for line in iter(process.stdout.readline, ''):
-        print(line, end='')
-        if "https://tailscale.com/a/" in line or "Success" in line:
-            break
+    for cmd in commands:
+        subprocess.run(cmd, shell=True, check=True)
 
-def start_sunshine():
-    print("=== INICIANDO SERVIDOR SUNSHINE ===")
-    sunshine_bin = shutil.which("sunshine") or "/usr/bin/sunshine" or "/usr/local/bin/sunshine"
-    subprocess.run(["sudo", "chmod", "+x", sunshine_bin], check=False)
+def start_crd():
+    print("\n=== EXECUTANDO COMANDO DE AUTORIZAÇÃO ===")
+    auth_code = input("Cole o comando do Chrome Remote Desktop aqui e aperte ENTER:\n")
     
-    subprocess.Popen(["sudo", sunshine_bin], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    time.sleep(3)
+    if auth_code.strip():
+        subprocess.run(auth_code, shell=True)
+        print("\n=======================================================")
+        print(" CONFIGURAÇÃO CONCLUÍDA!")
+        print(" Acesse: https://remotedesktop.google.com/access")
+        print("=======================================================\n")
+    else:
+        print("[!] Comando inválido. Execute o script novamente.")
 
 def main():
-    start_sunshine()
-    install_and_start_tailscale()
-
-    print("\n=======================================================")
-    print(" PASSO 1: Abra o link do Tailscale exibido acima e faça login")
-    print(" PASSO 2: Baixe/abra o aplicativo Tailscale no seu PC/Celular")
-    print(" PASSO 3: Copie o IP 100.x.x.x gerado no app do Tailscale e adicione no Moonlight")
-    print("=======================================================\n")
-
-    script_path = "/tmp/colab-gaming/moon-pair.sh"
-
-    if os.path.exists(script_path):
-        subprocess.run(["bash", script_path])
-    else:
-        pin = input("Enter Moonlight PIN: ")
-        sunshine_bin = shutil.which("sunshine") or "/usr/bin/sunshine"
-        subprocess.run(["sudo", sunshine_bin, "--pair", pin])
+    setup_rdp()
+    start_crd()
 
 if __name__ == "__main__":
     main()
