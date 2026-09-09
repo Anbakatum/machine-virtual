@@ -2,12 +2,16 @@ import os
 import subprocess
 
 def setup_rdp():
-    print("=== INSTALANDO INTERFACE GRÁFICA (XFCE4) E CHROME REMOTE DESKTOP ===")
+    print("=== INSTALANDO INTERFACE GRÁFICA (XFCE4) E DEPENDÊNCIAS ===")
     
     commands = [
         "sudo apt-get update -y",
-        "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xfce4 desktop-base xfce4-terminal chrome-remote-desktop",
-        "sudo apt-get install -y xscreensaver-",
+        "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xfce4 desktop-base xfce4-terminal xscreensaver-",
+        # Baixa o pacote oficial do Chrome Remote Desktop da Google
+        "wget -q https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb",
+        # Instala o pacote baixado resolvendo dependências automaticamente
+        "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ./chrome-remote-desktop_current_amd64.deb",
+        "rm -f chrome-remote-desktop_current_amd64.deb",
         "sudo bash -c 'echo \"exec /etc/X11/Xsession /usr/bin/xfce4-session\" > /etc/chrome-remote-desktop-session'"
     ]
     
