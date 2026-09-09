@@ -35,8 +35,19 @@ def setup_tailscale():
 
 def start_sunshine():
     print("=== INICIANDO SERVIDOR SUNSHINE ===")
-    # Sobe o servidor Sunshine no Colab antes do pairing
-    subprocess.Popen(["sunshine"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    
+    # Procura o executavel do Sunshine no sistema
+    sunshine_bin = shutil.which("sunshine") or "/usr/bin/sunshine" or "/usr/local/bin/sunshine"
+    
+    # Concede permissao de execucao
+    subprocess.run(["sudo", "chmod", "+x", sunshine_bin], check=False)
+    
+    # Inicia o Sunshine com privilégios de sudo
+    subprocess.Popen(
+        ["sudo", sunshine_bin],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
     time.sleep(5)
 
 def main():
@@ -54,7 +65,8 @@ def main():
     else:
         print("Digite o PIN gerado pelo Moonlight no seu PC/celular:")
         pin = input("Enter Moonlight PIN: ")
-        subprocess.run(["sunshine", "--pair", pin])
+        sunshine_bin = shutil.which("sunshine") or "/usr/bin/sunshine"
+        subprocess.run(["sudo", sunshine_bin, "--pair", pin])
 
 if __name__ == "__main__":
     main()
