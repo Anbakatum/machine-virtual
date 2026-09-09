@@ -2,23 +2,23 @@
 export DEBIAN_FRONTEND=noninteractive
 set -e
 
-echo "=== 1. Forçando modo não-interativo e desativando prompts ==="
-sudo echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
+echo "=== 1. Forçando modo não-interativo ==="
+echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
 
-echo "=== 2. Limpando travas e pacotes quebrados ==="
-sudo killall apt apt-get 2>/dev/null || true
+echo "=== 2. Limpando travas do APT e DPKG ==="
+sudo killall apt apt-get dpkg 2>/dev/null || true
 sudo rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock*
 sudo dpkg --configure -a --force-confold
 
 echo "=== 3. Instalando Tailscale ==="
 curl -fsSL https://tailscale.com/install.sh | sh
 
-echo "=== 4. Instalando XFCE4, Xvfb e Sunshine sem prompts ==="
+echo "=== 4. Instalando XFCE4, Xvfb e Sunshine ==="
 sudo apt-get update -y
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" \
-    xvfb x11vnc xfce4 xfce4-terminal libgbm1 libegl1-mesa wget curl
+    xvfb x11vnc xfce4 xfce4-terminal libgbm1 libegl1-mesa wget curl libssl-dev
 
-# Baixa e instala o Sunshine
+# Instalando versão compatível do Sunshine
 wget -q https://github.com/LizardByte/Sunshine/releases/latest/download/sunshine-ubuntu-22.04-amd64.deb -O /tmp/sunshine.deb
 sudo DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/sunshine.deb || sudo DEBIAN_FRONTEND=noninteractive apt-get install -fy
 rm -f /tmp/sunshine.deb
