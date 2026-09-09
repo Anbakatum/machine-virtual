@@ -4,76 +4,61 @@ import subprocess
 import shutil
 import re
 
-def start_sunshine():
-    print("=== INICIANDO SERVIDOR SUNSHINE ===")
-    sunshine_bin = shutil.which("sunshine") or "/usr/bin/sunshine" or "/usr/local/bin/sunshine"
-    subprocess.run(["sudo", "chmod", "+x", sunshine_bin], check=False)
+def install_and_start_cloudflared():
+    print("\n=== INSTALANDO CLOUDFLARE TUNNEL ===")
+    cloudflared_bin = shutil.which("cloudflared") or "/usr/local/bin/cloudflared"
     
-    # Inicia o Sunshine com privilégios sudo
-    subprocess.Popen(["sudo", sunshine_bin], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    time.sleep(4)
+    if not os.path.exists(cloudflared_bin):
+        subprocess.run([
+            "wget", "-q", "-O", "/usr/local/bin/cloudflared",
+            "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
+        ], check=True)
+        subprocess.run(["chmod", "+x", "/usr/local/bin/cloudflared"], check=True)
+        cloudflared_bin = "/usr/local/bin/cloudflared"
 
-def start_tunnel():
-    print("\n=== CRIANDO TÚNEL PÚBLICO AUTOMÁTICO (PINGGY) ===")
+    print("=== INICIANDO TÚNEL DA CLOUDFLARE ===")
     
-    # Comando com parâmetros para ignorar checagem de chave SSH do host
-    cmd = [
-        "ssh", 
-        "-o", "StrictHostKeyChecking=no", 
-        "-o", "UserKnownHostsFile=/dev/null", 
-        "-o", "ServerAliveInterval=30", 
-        "-p", "443", 
-        "-R", "0:localhost:47989", 
-        "a.pinggy.io"
-    ]
-    
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+    # Inicia o túnel direcionando a porta 47989 do Sunshine
+    log_file = open("/tmp/cloudflared.log", "w")
+    subprocess.Popen(
+        [cloudflared_bin, "tunnel", "--url", "tcp://localhost:47989"],
+        stdout=log_file,
+        stderr=log_file
+    )
     
     public_address = None
     start_time = time.time()
     
-    # Faz a leitura do output em tempo real
-    while time.time() - start_time < 25:
-        line = process.stdout.readline()
-        if not line:
-            break
-        
-        # Procura qualquer padrao de URL emitido pelo Pinggy
-        match = re.search(r'([a-zA-Z0-9.-]+\.pinggy\.link:\d+|a\.pinggy\.io:\d+|free\.pinggy\.link:\d+)', line)
-        if match:
-            public_address = match.group(0)
-            break
+    # Aguarda gerar o link no arquivo de log sem travar o Python
+    while time.time() - start_time < 15:
+        time.sleep(1)
+        if os.path.exists("/tmp/cloudflared.log"):
+            with open("/tmp/cloudflared.log", "r") as f:
+                content = f.read()
+                match = re.search(r'https://[a-zA-Z0-9.-]+\.trycloudflare\.com', content)
+                if match:
+                    # Formata o endereço removendo o https://
+                    public_address = match.group(0).replace("https://", "")
+                    break
 
     if public_address:
         print("\n=======================================================")
         print(f" ENDEREÇO PARA COLOCAR NO MOONLIGHT: {public_address}")
         print("=======================================================\n")
     else:
-        print("\n=== TENTANDO TÚNEL ALTERNATIVO (SER VEO) ===")
-        cmd_backup = [
-            "ssh", 
-            "-o", "StrictHostKeyChecking=no", 
-            "-o", "UserKnownHostsFile=/dev/null", 
-            "-R", "47989:localhost:47989", 
-            "serveo.net"
-        ]
-        process_backup = subprocess.Popen(cmd_backup, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        
-        start_time_b = time.time()
-        while time.time() - start_time_b < 15:
-            line_b = process_backup.stdout.readline()
-            if not line_b:
-                break
-            match_b = re.search(r'Forwarding SSH traffic from ([^\s]+)', line_b)
-            if match_b:
-                print("\n=======================================================")
-                print(f" ENDEREÇO SERVEO: serveo.net:47989")
-                print("=======================================================\n")
-                break
+        print("\n[!] Verifique os logs de conexão do túnel em /tmp/cloudflared.log\n")
+
+def start_sunshine():
+    print("=== INICIANDO SERVIDOR SUNSHINE ===")
+    sunshine_bin = shutil.which("sunshine") or "/usr/bin/sunshine" or "/usr/local/bin/sunshine"
+    subprocess.run(["sudo", "chmod", "+x", sunshine_bin], check=False)
+    
+    subprocess.Popen(["sudo", sunshine_bin], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(3)
 
 def main():
     start_sunshine()
-    start_tunnel()
+    install_and_start_cloudflared()
 
     script_path = "/tmp/colab-gaming/moon-pair.sh"
 
