@@ -3,12 +3,20 @@ import time
 import subprocess
 import shutil
 
+def setup_tun():
+    """Cria o dispositivo TUN no Colab para o Tailscale funcionar como interface de rede real"""
+    print("\n=== CONFIGURANDO INTERFACE TUN ===")
+    subprocess.run(["sudo", "mkdir", "-p", "/dev/net"])
+    subprocess.run(["sudo", "mknod", "/dev/net/tun", "c", "10", "200"], check=False)
+    subprocess.run(["sudo", "chmod", "606", "/dev/net/tun"])
+
 def setup_tailscale():
+    setup_tun()
     print("\n=== INICIANDO TAILSCALE ===")
     
-    # Inicia o daemon se nao estiver rodando
+    # Inicia o daemon do tailscale em background com permissao para TUN
     subprocess.Popen(
-        ["sudo", "tailscaled", "--tun=userspace-networking", "--socks5-server=localhost:1055"],
+        ["sudo", "tailscaled"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL
     )
@@ -21,15 +29,14 @@ def setup_tailscale():
 
     print("\n=======================================================")
     print(" SEU IP DO TAILSCALE:")
-    # Mostra o IP gerado para usar no Moonlight
     subprocess.run(["sudo", tailscale_bin, "ip", "-4"])
     print("=======================================================\n")
 
 def main():
-    # 1. Configura e exibe o IP do Tailscale
+    # 1. Configura e conecta o Tailscale com TUN habilitado
     setup_tailscale()
 
-    # 2. Inicia o script do Sunshine / Moon-pair
+    # 2. Executa o script de streaming/pairing
     script_path = "/tmp/colab-gaming/moon-pair.sh"
 
     print("=======================================================")
