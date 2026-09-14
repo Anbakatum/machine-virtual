@@ -1,11 +1,5 @@
 import os
 import subprocess
-import time
-
-def setup_drive():
-    print("=== MONTA O GOOGLE DRIVE ===")
-    from google.colab import drive
-    drive.mount('/content/drive')
 
 def setup_tailscale():
     print("=== INSTALANDO TAILSCALE ===")
@@ -26,17 +20,14 @@ def setup_sunshine():
         subprocess.run(cmd, shell=True)
 
 def main():
-    setup_drive()
     setup_tailscale()
     setup_sunshine()
     
     print("\n=======================================================")
     print(" SUNSHINE RODANDO!")
     print(" Acesse pelo IP do Tailscale na porta 47990 no navegador.")
-    print(" Exemplo: https://<IP-DO-TAILSCALE>:47990")
     print("=======================================================\n")
     
-    # Mantém o Sunshine ativo no terminal
     subprocess.run("sunshine", shell=True)
 
 if __name__ == "__main__":
