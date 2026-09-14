@@ -10,7 +10,7 @@ def setup_tailscale(auth_key):
     subprocess.Popen(["tailscaled", "--tun=userspace-networking"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(3)
     
-    if auth_key and auth_key != "SUA_AUTH_KEY_AQUI":
+    if auth_key and auth_key != "tskey-auth-kKzHadsQrc11CNTRL-tajcLJ3dkNJcUJTLSzQkPJ24yVXu8o18Q":
         subprocess.run(f"tailscale up --authkey={auth_key}", shell=True)
     else:
         print("\n[!] Chave do Tailscale nao fornecida. Abra o link abaixo para autorizar:")
