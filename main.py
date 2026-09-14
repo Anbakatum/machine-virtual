@@ -2,87 +2,25 @@ import os
 import subprocess
 import time
 
-def install_wireguard_and_tools():
-    print("=== INSTALANDO WIREGUARD, NGROK E DEPENDÊNCIAS ===")
-    commands = [
-        "sudo apt-get update -y",
-        "sudo apt-get install -y wireguard qrencode xvfb libssl-dev libcurl4-openssl-dev libboost-program-options-dev libgl1-mesa-dev",
-        "curl -s https://bin.equinox.io/c/bNyA16AP2g/ngrok-v3-stable-linux-amd64.tgz | tar -xz -C /usr/local/bin"
-    ]
-    for cmd in commands:
-        subprocess.run(cmd, shell=True)
-
-def setup_wireguard(ngrok_authtoken):
-    print("=== CONFIGURANDO INTERFACE WIREGUARD ===")
+def setup_tailscale(auth_key):
+    print("=== INSTALANDO E CONFIGURANDO TAILSCALE ===")
+    subprocess.run("curl -fsSL https://tailscale.com/install.sh | sh", shell=True, check=True)
     
-    # Gerar chaves do Servidor (Colab)
-    server_private_key = subprocess.getoutput("wg genkey").strip()
-    server_public_key = subprocess.getoutput(f"echo '{server_private_key}' | wg pubkey").strip()
+    # Inicia o daemon em modo userspace para nao depender de permissoes de kernel do Colab
+    subprocess.Popen(["tailscaled", "--tun=userspace-networking"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(3)
     
-    # Gerar chaves do Cliente (Seu PC/Celular)
-    client_private_key = subprocess.getoutput("wg genkey").strip()
-    client_public_key = subprocess.getoutput(f"echo '{client_private_key}' | wg pubkey").strip()
-    
-    # Criar wg0.conf do Servidor
-    server_conf = f"""[Interface]
-PrivateKey = {server_private_key}
-Address = 10.0.0.1/24
-ListenPort = 51820
-
-[Peer]
-PublicKey = {client_public_key}
-AllowedIPs = 10.0.0.2/32
-"""
-    with open("/etc/wireguard/wg0.conf", "w") as f:
-        f.write(server_conf)
-
-    # Subir interface WireGuard
-    subprocess.run("wg-quick up wg0", shell=True)
-
-    # Autenticar e abrir túnel UDP no Ngrok
-    subprocess.run(f"ngrok config add-authtoken {ngrok_authtoken}", shell=True)
-    subprocess.Popen(["ngrok", "udp", "51820"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    time.sleep(4)
-
-    # Obter IP/Porta pública do Ngrok
-    try:
-        import urllib.request, json
-        data = json.loads(urllib.request.urlopen("http://localhost:4040/api/tunnels").read())
-        public_url = data['tunnels'][0]['public_url'].replace("udp://", "")
-    except Exception:
-        public_url = "SEU_ENDPOINT_NGROK:PORTA"
-
-    # Criar arquivo .conf para o Cliente
-    client_conf = f"""[Interface]
-PrivateKey = {client_private_key}
-Address = 10.0.0.2/32
-DNS = 1.1.1.1
-
-[Peer]
-PublicKey = {server_public_key}
-Endpoint = {public_url}
-AllowedIPs = 10.0.0.0/24
-PersistentKeepalive = 25
-"""
-    
-    # Salva o arquivo na pasta do projeto e no Google Drive (se montado)
-    conf_path = "/content/machine-virtual/wireguard_moonlight.conf"
-    with open(conf_path, "w") as f:
-        f.write(client_conf)
-
-    if os.path.exists("/content/drive/MyDrive"):
-        with open("/content/drive/MyDrive/wireguard_moonlight.conf", "w") as f:
-            f.write(client_conf)
-
-    print("\n=======================================================")
-    print(" ARCHIVO DE CONFIGURAÇÃO GERADO COM SUCESSO!")
-    print(f" Caminho do arquivo: {conf_path}")
-    print(" IP PARA USAR NO MOONLIGHT APÓS CONECTAR: 10.0.0.1")
-    print("=======================================================\n")
+    if auth_key and auth_key != "SUA_AUTH_KEY_AQUI":
+        subprocess.run(f"tailscale up --authkey={auth_key}", shell=True)
+    else:
+        print("\n[!] Chave do Tailscale nao fornecida. Abra o link abaixo para autorizar:")
+        subprocess.run("tailscale up", shell=True)
 
 def setup_sunshine():
-    print("=== INSTALANDO E INICIANDO SUNSHINE ===")
+    print("=== INSTALANDO DISPLAY VIRTUAL E SUNSHINE ===")
     commands = [
+        "sudo apt-get update -y",
+        "sudo apt-get install -y xvfb libssl-dev libcurl4-openssl-dev libboost-program-options-dev libgl1-mesa-dev",
         "wget https://github.com/LizardByte/Sunshine/releases/download/v0.21.0/sunshine-ubuntu-22.04-amd64.deb",
         "sudo dpkg -i sunshine-ubuntu-22.04-amd64.deb || sudo apt-get install -f -y",
         "rm -f sunshine-ubuntu-22.04-amd64.deb"
@@ -92,13 +30,38 @@ def setup_sunshine():
 
     subprocess.Popen(["Xvfb", ":99", "-screen", "0", "1280x720x24"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-def main():
-    # COLE SEU AUTHTOKEN DO NGROK AQUI (Crie gratis em ngrok.com):
-    NGROK_TOKEN = "3J3AWUbpO8jfj8vfW3KpQgbsVhd_44stQ17sQEKNhxicZmDER"
+def save_connection_info():
+    ip_tailscale = subprocess.getoutput("tailscale ip -4").strip()
+    
+    info_text = f"""=== CONEXÃO MOONLIGHT / SUNSHINE ===
+IP para adicionar no Moonlight: {ip_tailscale}
+Painel de Configuração do Sunshine: https://{ip_tailscale}:47990
+"""
+    
+    # Salva localmente e no Google Drive
+    local_path = "/content/machine-virtual/conexao_moonlight.txt"
+    with open(local_path, "w") as f:
+        f.write(info_text)
 
-    install_wireguard_and_tools()
-    setup_wireguard(NGROK_TOKEN)
+    drive_path = "/content/drive/MyDrive/conexao_moonlight.txt"
+    if os.path.exists("/content/drive/MyDrive"):
+        with open(drive_path, "w") as f:
+            f.write(info_text)
+        print(f"[✓] INFORMAÇÕES DE CONEXÃO SALVAS NO GOOGLE DRIVE: {drive_path}")
+
+    print("\n=======================================================")
+    print(f" TAILSCALE CONECTADO!")
+    print(f" IP PARA O MOONLIGHT: {ip_tailscale}")
+    print(f" PAINEL SUNSHINE: https://{ip_tailscale}:47990")
+    print("=======================================================\n")
+
+def main():
+    # Crie uma Auth Key em: https://login.tailscale.com/admin/settings/keys
+    TAILSCALE_AUTH_KEY = "SUA_AUTH_KEY_AQUI"
+
+    setup_tailscale(TAILSCALE_AUTH_KEY)
     setup_sunshine()
+    save_connection_info()
 
     env = os.environ.copy()
     env["DISPLAY"] = ":99"
